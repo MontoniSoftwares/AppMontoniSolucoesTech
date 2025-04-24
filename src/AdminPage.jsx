@@ -1,4 +1,4 @@
-import LogoMS from ".assets/Logo_MS.png";
+import LogoMS from "./assets/Logo_MS.png";
 import { logEvent } from "firebase/analytics";
 import { signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { get, ref, remove, set } from "firebase/database";
