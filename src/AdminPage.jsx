@@ -1,3 +1,4 @@
+import LogoMS from ".assets/Logo_MS.png";
 import { logEvent } from "firebase/analytics";
 import { signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { get, ref, remove, set } from "firebase/database";
@@ -603,11 +604,7 @@ function AdminPage() {
     <div className="bg-gray-900 text-white min-h-screen w-full">
       <div className="min-w-[320px] max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex justify-center mb-6">
-          <img
-            src="/public/assets/Logo_MS.png"
-            alt="Logo"
-            className="logo w-24 sm:w-32 md:w-40 h-auto"
-          />
+          <img src={LogoMS} alt="Logo" className="logo w-32 h-auto" />
         </div>
         <div className="flex flex-col sm:flex-row justify-between items-center mb-6">
           <h2 className="text-2xl font-bold mb-4 sm:mb-0 text-center">
