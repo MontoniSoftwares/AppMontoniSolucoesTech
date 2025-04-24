@@ -118,7 +118,7 @@ function AdminPage() {
   }, [isAdmin, loadUsers]);
 
   const handleAdminLogin = () => {
-    const ADMIN_PASSWORD = "admin123";
+    const ADMIN_PASSWORD = "@Morpheus77";
     if (password === ADMIN_PASSWORD) {
       setIsAdmin(true);
       setPassword("");
