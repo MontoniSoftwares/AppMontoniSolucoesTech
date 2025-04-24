@@ -604,7 +604,7 @@ function AdminPage() {
       <div className="min-w-[320px] max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex justify-center mb-6">
           <img
-            src="/src/assets/Logo_MS.png"
+            src="/public/assets/Logo_MS.png"
             alt="Logo"
             className="logo w-24 sm:w-32 md:w-40 h-auto"
           />

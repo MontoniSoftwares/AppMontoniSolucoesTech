@@ -376,7 +376,7 @@ function App() {
                   <div className="flex justify-between items-center">
                     <div className="flex items-center">
                       <img
-                        src="/src/assets/Logo_MS.png"
+                        src="/src/public/Logo_MS.png"
                         alt="Montoni Logo"
                         className="h-10 mr-4"
                       />
@@ -717,7 +717,7 @@ function App() {
                 <footer className="bg-gray-900 py-6 text-center">
                   <div>
                     <img
-                      src="/src/assets/Logo_MS.png"
+                      src="/public/assets/Logo_MS.png"
                       alt="Montoni Logo"
                       className="h-12 mx-auto mb-4"
                     />
