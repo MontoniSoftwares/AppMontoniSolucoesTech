@@ -3,15 +3,17 @@ import { initializeApp } from "firebase/app";
 import { getDatabase } from "firebase/database";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAVfkpcdHNkzIYpI5LAFr0cungHHk8t3vQ",
-  authDomain: "montonisolucoestech-2e88f.firebaseapp.com",
-  databaseURL: "https://montonisolucoestech-2e88f-default-rtdb.firebaseio.com",
-  projectId: "montonisolucoestech-2e88f",
-  storageBucket: "montonisolucoestech-2e88f.firebasestorage.app",
-  messagingSenderId: "556184946334",
-  appId: "1:556184946334:web:0883dfa8d81d1d858d5d8f",
-  measurementId: "G-PMQQY7BCT4",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
+
+console.log("Firebase Config:", firebaseConfig); // Log para depuração
 
 const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
