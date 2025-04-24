@@ -2,7 +2,7 @@ import { logEvent } from "firebase/analytics";
 import { get, ref, set } from "firebase/database";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import LogoMS from "./assets/Logo_MS.png"; // Corrigido: import do logotipo
+import LogoMS from "./assets/Logo_MS.png";
 import { analytics, database } from "./firebase";
 
 function HomePage() {
@@ -135,7 +135,8 @@ function HomePage() {
       return;
     }
 
-    if (!validateWhatsapp(whatsapp)) {
+    const cleanWhatsapp = whatsapp.replace(/\D/g, "");
+    if (!validateWhatsapp(cleanWhatsapp)) {
       alert(
         "WhatsApp inválido! Use apenas números no total de 11 dígitos (ex: xxxxxxxxxxx)."
       );
@@ -145,7 +146,7 @@ function HomePage() {
     }
 
     try {
-      const userRef = ref(database, `clients/${whatsapp}`);
+      const userRef = ref(database, `clients/${cleanWhatsapp}`);
       const snapshot = await get(userRef);
 
       if (!snapshot.exists()) {
@@ -157,7 +158,7 @@ function HomePage() {
         const userData = snapshot.val();
         setLoggedInUser(userData);
         setLoginModal(false);
-        logEvent(analytics, "client_login", { whatsapp });
+        logEvent(analytics, "client_login", { whatsapp: cleanWhatsapp });
 
         const greeting = getGreetingByTime();
         const message = `${greeting}, ${userData.name}!`;
@@ -180,7 +181,8 @@ function HomePage() {
       return;
     }
 
-    if (!validateWhatsapp(whatsapp)) {
+    const cleanWhatsapp = whatsapp.replace(/\D/g, "");
+    if (!validateWhatsapp(cleanWhatsapp)) {
       alert(
         "WhatsApp inválido! Use apenas números no total de 11 dígitos (ex: xxxxxxxxxxx)."
       );
@@ -189,8 +191,8 @@ function HomePage() {
     }
 
     try {
-      const userData = { name, email, whatsapp };
-      await set(ref(database, `clients/${whatsapp}`), userData);
+      const userData = { name, email, whatsapp: cleanWhatsapp };
+      await set(ref(database, `clients/${cleanWhatsapp}`), userData);
 
       setRegisterModal(false);
       setLoggedInUser(userData);
@@ -198,7 +200,7 @@ function HomePage() {
       setEmail("");
       setWhatsapp("");
       setShowRegisterButton(false);
-      logEvent(analytics, "client_registered", { whatsapp });
+      logEvent(analytics, "client_registered", { whatsapp: cleanWhatsapp });
 
       const greeting = getGreetingByTime();
       const message = `${greeting}, ${userData.name}!`;
@@ -242,9 +244,16 @@ function HomePage() {
       return;
     }
 
+    // Normalizar o número do WhatsApp do cliente
+    const cleanWhatsapp = loggedInUser.whatsapp.replace(/\D/g, "");
+    if (!validateWhatsapp(cleanWhatsapp)) {
+      alert("Número de WhatsApp do cliente inválido. Verifique o cadastro.");
+      return;
+    }
+
     const scheduleRef = ref(
       database,
-      `clients/${loggedInUser.whatsapp}/schedules/${meetingDate}/${meetingTime}`
+      `clients/${cleanWhatsapp}/schedules/${meetingDate}/${meetingTime}`
     );
 
     get(scheduleRef)
@@ -256,8 +265,8 @@ function HomePage() {
           checkAvailableTimes(meetingDate);
         } else {
           const isOnline = city.trim().toLowerCase() !== "rio das ostras";
-
           const address = { cep, street, number, neighborhood, city };
+
           set(scheduleRef, {
             observation: observation || "",
             address,
@@ -271,6 +280,7 @@ function HomePage() {
               const addressText = `${street}, ${number}, ${neighborhood}, ${city} - CEP: ${cep}`;
               const meetingDetails = `Data: ${formattedDate}, Horário: ${meetingTime}`;
 
+              // Mensagem para o cliente
               let clientMessage = `Confirmação de agendamento - Montoni Soluções Tech\n\nNossa Equipe da Montoni Soluções Tech recebeu seu agendamento!\n\n`;
               if (isOnline) {
                 clientMessage += `Reunião ONLINE\n${meetingDetails}\nLink do Google Meet: Em breve você receberá o link da reunião.\nObservações: ${
@@ -282,15 +292,23 @@ function HomePage() {
                 }`;
               }
 
-              const clientMessageUrl = `https://wa.me/+55${
-                loggedInUser.whatsapp
-              }?text=${encodeURIComponent(clientMessage)}`;
-              window.open(clientMessageUrl, "_blank");
+              const clientMessageUrl = `https://wa.me/+55${cleanWhatsapp}?text=${encodeURIComponent(
+                clientMessage
+              )}`;
+              try {
+                const clientWindow = window.open(clientMessageUrl, "_blank");
+                if (!clientWindow) {
+                  alert(
+                    "Não foi possível abrir o WhatsApp do cliente. Verifique as configurações de pop-up do navegador."
+                  );
+                }
+              } catch (error) {
+                alert("Erro ao abrir o WhatsApp do cliente: " + error.message);
+              }
 
+              // Mensagem para a empresa
               const clientName = loggedInUser.name || "Cliente Desconhecido";
-              const companyMessage = `Novo agendamento - Montoni Soluções Tech\n\nCliente: ${clientName} (WhatsApp: ${
-                loggedInUser.whatsapp
-              })\n${meetingDetails}\n${
+              const companyMessage = `Novo agendamento - Montoni Soluções Tech\n\nCliente: ${clientName} (WhatsApp: ${cleanWhatsapp})\n${meetingDetails}\n${
                 isOnline
                   ? `Reunião ONLINE\nLink do Google Meet: Será definido em breve.`
                   : `Reunião PRESENCIAL\nEndereço: ${addressText}`
@@ -298,7 +316,16 @@ function HomePage() {
               const companyMessageUrl = `https://wa.me/+5522999998352?text=${encodeURIComponent(
                 companyMessage
               )}`;
-              window.open(companyMessageUrl, "_blank");
+              try {
+                const companyWindow = window.open(companyMessageUrl, "_blank");
+                if (!companyWindow) {
+                  alert(
+                    "Não foi possível abrir o WhatsApp da empresa. Verifique as configurações de pop-up do navegador."
+                  );
+                }
+              } catch (error) {
+                alert("Erro ao abrir o WhatsApp da empresa: " + error.message);
+              }
 
               alert(
                 `Reunião agendada para ${formattedDate} às ${meetingTime}! Uma mensagem de confirmação foi enviada para o seu WhatsApp.`
@@ -316,7 +343,7 @@ function HomePage() {
               logEvent(analytics, "meeting_scheduled", {
                 date: meetingDate,
                 time: meetingTime,
-                whatsapp: loggedInUser.whatsapp,
+                whatsapp: cleanWhatsapp,
                 observation: observation || "Nenhuma observação",
                 isOnline,
               });
