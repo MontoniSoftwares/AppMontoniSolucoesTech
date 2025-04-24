@@ -1,5 +1,6 @@
 import { getAnalytics } from "firebase/analytics";
 import { initializeApp } from "firebase/app";
+import { getAuth } from "firebase/auth";
 import { getDatabase } from "firebase/database";
 
 const firebaseConfig = {
@@ -13,10 +14,17 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
 
-console.log("Firebase Config:", firebaseConfig); // Log para depuração
+console.log("Firebase Config:", firebaseConfig);
 
-const app = initializeApp(firebaseConfig);
-const database = getDatabase(app);
-const analytics = getAnalytics(app);
+let app, database, analytics, auth;
+try {
+  app = initializeApp(firebaseConfig);
+  database = getDatabase(app);
+  analytics = getAnalytics(app);
+  auth = getAuth(app);
+} catch (error) {
+  console.error("Erro ao inicializar Firebase:", error);
+  throw error;
+}
 
-export { analytics, database };
+export { analytics, auth, database };

@@ -1,12 +1,15 @@
 import { logEvent } from "firebase/analytics";
+import { signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { get, ref, remove, set } from "firebase/database";
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { analytics, database } from "./firebase";
+import { analytics, auth, database } from "./firebase";
 
 function AdminPage() {
   const [isAdmin, setIsAdmin] = useState(false);
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
   const [users, setUsers] = useState([]);
   const [newName, setNewName] = useState("");
   const [newEmail, setNewEmail] = useState("");
@@ -106,7 +109,7 @@ function AdminPage() {
         console.log("Nenhum usuário encontrado no Firebase.");
       }
     } catch (error) {
-      alert("Erro ao carregar usuários: " + error.message);
+      setError("Erro ao carregar usuários: " + error.message);
       console.error("Erro ao carregar usuários:", error);
     }
   }, []);
@@ -117,23 +120,39 @@ function AdminPage() {
     }
   }, [isAdmin, loadUsers]);
 
-  const handleAdminLogin = () => {
-    const ADMIN_PASSWORD = "@Morpheus77";
-    if (password === ADMIN_PASSWORD) {
+  const handleAdminLogin = async () => {
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
       setIsAdmin(true);
+      setEmail("");
       setPassword("");
+      setError("");
       logEvent(analytics, "admin_login");
       console.log("Admin logado com sucesso.");
-    } else {
-      alert("Senha incorreta!");
+    } catch (error) {
+      setError(`Erro no login: ${error.message}`);
       setPassword("");
-      console.log("Tentativa de login admin falhou: senha incorreta.");
+      setEmail("");
+      console.log("Tentativa de login admin falhou:", error.message);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      setIsAdmin(false);
+      setError("");
+      logEvent(analytics, "admin_logout");
+      console.log("Admin deslogado com sucesso.");
+    } catch (error) {
+      setError(`Erro ao sair: ${error.message}`);
+      console.log("Tentativa de logout admin falhou:", error.message);
     }
   };
 
   const handleSaveUser = async () => {
     if (!newName || !newEmail || !newWhatsapp) {
-      alert("Por favor, preencha os campos obrigatórios do usuário.");
+      setError("Por favor, preencha os campos obrigatórios do usuário.");
       console.log("Campos obrigatórios não preenchidos:", {
         newName,
         newEmail,
@@ -143,7 +162,7 @@ function AdminPage() {
     }
 
     if (newDate && !newTime) {
-      alert("Por favor, preencha o horário do agendamento.");
+      setError("Por favor, preencha o horário do agendamento.");
       console.log("Horário do agendamento não preenchido:", {
         newDate,
         newTime,
@@ -152,7 +171,7 @@ function AdminPage() {
     }
 
     if (newIsOnline && newMeetLink && !isValidUrl(newMeetLink)) {
-      alert("Por favor, insira um URL válido para o link da reunião.");
+      setError("Por favor, insira um URL válido para o link da reunião.");
       console.log("URL inválido para o link da reunião:", newMeetLink);
       return;
     }
@@ -194,7 +213,7 @@ function AdminPage() {
 
         const scheduleSnapshot = await get(scheduleRef);
         if (scheduleSnapshot.exists()) {
-          alert("Este horário já está reservado. Por favor, escolha outro.");
+          setError("Este horário já está reservado. Por favor, escolha outro.");
           console.log(`Horário reservado: ${newDate}/${newTime}`);
           return;
         }
@@ -241,14 +260,7 @@ function AdminPage() {
         console.log("Mensagem de confirmação enviada para:", clientPhone);
       }
 
-      alert(
-        editUser ? "Usuário atualizado!" : "Usuário e agendamento adicionados!"
-      );
-      console.log(
-        `Usuário ${editUser ? "atualizado" : "adicionado"} no Firebase:`,
-        userData
-      );
-
+      setError("");
       setNewName("");
       setNewEmail("");
       setNewWhatsapp("");
@@ -275,7 +287,7 @@ function AdminPage() {
         });
       }
     } catch (error) {
-      alert("Erro ao salvar: " + error.message);
+      setError("Erro ao salvar: " + error.message);
       console.error("Erro ao salvar:", error);
     }
   };
@@ -285,6 +297,7 @@ function AdminPage() {
     setNewName(user.name);
     setNewEmail(user.email);
     setNewWhatsapp(user.whatsapp);
+    setError("");
     console.log("Editando usuário:", user);
   };
 
@@ -293,12 +306,12 @@ function AdminPage() {
       try {
         const userRef = ref(database, `clients/${whatsapp}`);
         await remove(userRef);
-        alert("Usuário deletado!");
-        console.log(`Usuário deletado do Firebase: ${whatsapp}`);
+        setError("");
         await loadUsers();
         logEvent(analytics, "admin_delete_user", { whatsapp });
+        console.log(`Usuário deletado do Firebase: ${whatsapp}`);
       } catch (error) {
-        alert("Erro ao deletar usuário: " + error.message);
+        setError("Erro ao deletar usuário: " + error.message);
         console.error("Erro ao deletar usuário:", error);
       }
     } else {
@@ -314,14 +327,14 @@ function AdminPage() {
           `clients/${whatsapp}/schedules/${date}/${time}`
         );
         await remove(scheduleRef);
-        alert("Agendamento deletado!");
+        setError("");
+        await loadUsers();
+        logEvent(analytics, "admin_delete_schedule", { whatsapp, date, time });
         console.log(
           `Agendamento deletado do Firebase: ${whatsapp}/${date}/${time}`
         );
-        await loadUsers();
-        logEvent(analytics, "admin_delete_schedule", { whatsapp, date, time });
       } catch (error) {
-        alert("Erro ao deletar agendamento: " + error.message);
+        setError("Erro ao deletar agendamento: " + error.message);
         console.error("Erro ao deletar agendamento:", error);
       }
     }
@@ -341,18 +354,19 @@ function AdminPage() {
       setEditCity(entry.schedule.address.city || "");
       setEditCep(entry.schedule.address.cep || "");
     }
+    setError("");
     console.log("Editando agendamento:", entry);
   };
 
   const handleSaveSchedule = async () => {
     if (!editDate || !editTime) {
-      alert("Por favor, preencha a data e o horário.");
+      setError("Por favor, preencha a data e o horário.");
       console.log("Data ou horário não preenchidos:", { editDate, editTime });
       return;
     }
 
     if (editIsOnline && editMeetLink && !isValidUrl(editMeetLink)) {
-      alert("Por favor, insira um URL válido para o link da reunião.");
+      setError("Por favor, insira um URL válido para o link da reunião.");
       console.log("URL inválido para o link da reunião:", editMeetLink);
       return;
     }
@@ -370,7 +384,7 @@ function AdminPage() {
       if (editDate !== originalDate || editTime !== originalTime) {
         const scheduleSnapshot = await get(scheduleRef);
         if (scheduleSnapshot.exists()) {
-          alert("Este horário já está reservado. Por favor, escolha outro.");
+          setError("Este horário já está reservado. Por favor, escolha outro.");
           console.log(`Horário reservado: ${editDate}/${editTime}`);
           return;
         }
@@ -483,7 +497,7 @@ function AdminPage() {
         }
       }
 
-      alert("Agendamento atualizado com sucesso!");
+      setError("");
       setEditSchedule(null);
       setEditDate("");
       setEditTime("");
@@ -502,7 +516,7 @@ function AdminPage() {
         time: editTime,
       });
     } catch (error) {
-      alert("Erro ao atualizar agendamento: " + error.message);
+      setError("Erro ao atualizar agendamento: " + error.message);
       console.error("Erro ao atualizar agendamento:", error);
     }
   };
@@ -510,14 +524,30 @@ function AdminPage() {
   if (!isAdmin) {
     return (
       <div className="bg-gray-900 text-white min-h-screen flex items-center justify-center px-4 sm:px-6">
-        <div className="bg-gray-800 p-6 rounded-lg w-full max-w-md">
-          <h2 className="text-2xl font-bold mb-4">Login do Administrador</h2>
+        <div className="bg-gray-800 p-6 rounded-lg w-full max-w-md shadow-lg">
+          <h2 className="text-2xl font-bold mb-6 text-center">
+            Login do Administrador
+          </h2>
+          {error && (
+            <div className="bg-red-600 text-white p-3 rounded mb-4 text-center">
+              {error}
+            </div>
+          )}
+          <input
+            type="email"
+            placeholder="E-mail"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full p-3 mb-4 bg-gray-700 rounded text-white text-base focus:outline-none focus:ring-2 focus:ring-pink-500"
+            autoComplete="email"
+          />
           <input
             type="password"
             placeholder="Senha"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full p-3 mb-4 bg-gray-700 rounded text-white text-base"
+            className="w-full p-3 mb-4 bg-gray-700 rounded text-white text-base focus:outline-none focus:ring-2 focus:ring-pink-500"
+            autoComplete="current-password"
           />
           <div className="flex flex-col sm:flex-row justify-between space-y-3 sm:space-y-0 sm:space-x-3">
             <Link
@@ -543,6 +573,7 @@ function AdminPage() {
             <button
               onClick={handleAdminLogin}
               className="w-full sm:w-auto flex items-center justify-center bg-pink-500 text-white px-4 py-2 rounded hover:bg-pink-600 transition-colors duration-200"
+              disabled={!email || !password}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -571,37 +602,70 @@ function AdminPage() {
   return (
     <div className="bg-gray-900 text-white min-h-screen w-full">
       <div className="min-w-[320px] max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Logotipo opcional */}
         <div className="flex justify-center mb-6">
-          <img src="/path/to/logo.png" alt="Logo" className="logo" />
+          <img
+            src="/src/assets/Logo_MS.png"
+            alt="Logo"
+            className="logo w-24 sm:w-32 md:w-40 h-auto"
+          />
         </div>
         <div className="flex flex-col sm:flex-row justify-between items-center mb-6">
-          <h2 className="text-3xl font-bold mb-4 sm:mb-0">
+          <h2 className="text-2xl font-bold mb-4 sm:mb-0 text-center">
             Painel do Administrador
           </h2>
-          <Link
-            to="/"
-            className="flex items-center bg-pink-500 text-white px-4 py-2 rounded hover:bg-pink-600 transition-colors duration-200"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="mr-1"
+          <div className="flex space-x-3">
+            <Link
+              to="/"
+              className="flex items-center bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700 transition-colors duration-200"
             >
-              <path d="M15 18l-6-6 6-6" />
-            </svg>
-            Voltar para Home
-          </Link>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="mr-1"
+              >
+                <path d="M15 18l-6-6 6-6" />
+              </svg>
+              Voltar para Home
+            </Link>
+            <button
+              onClick={handleLogout}
+              className="flex items-center bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition-colors duration-200"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="mr-1"
+              >
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+              Sair
+            </button>
+          </div>
         </div>
 
-        <div className="bg-gray-800 p-6 rounded-lg mb-6">
+        {error && (
+          <div className="bg-red-600 text-white p-3 rounded mb-6 text-center">
+            {error}
+          </div>
+        )}
+
+        <div className="bg-gray-800 p-6 rounded-lg mb-6 shadow-lg">
           <h3 className="text-xl font-bold mb-4">
             {editUser ? "Editar Usuário" : "Adicionar Usuário e Agendamento"}
           </h3>
@@ -610,22 +674,25 @@ function AdminPage() {
             placeholder="Nome"
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
-            className="w-full p-3 mb-3 bg-gray-700 rounded text-white text-base"
+            className="w-full p-3 mb-3 bg-gray-700 rounded text-white text-base focus:outline-none focus:ring-2 focus:ring-pink-500"
+            autoComplete="name"
           />
           <input
             type="email"
             placeholder="Email"
             value={newEmail}
             onChange={(e) => setNewEmail(e.target.value)}
-            className="w-full p-3 mb-3 bg-gray-700 rounded text-white text-base"
+            className="w-full p-3 mb-3 bg-gray-700 rounded text-white text-base focus:outline-none focus:ring-2 focus:ring-pink-500"
+            autoComplete="email"
           />
           <input
             type="text"
             placeholder="WhatsApp (ex: 22999998352)"
             value={newWhatsapp}
             onChange={(e) => setNewWhatsapp(e.target.value)}
-            className="w-full p-3 mb-3 bg-gray-700 rounded text-white text-base"
+            className="w-full p-3 mb-3 bg-gray-700 rounded text-white text-base focus:outline-none focus:ring-2 focus:ring-pink-500"
             disabled={editUser}
+            autoComplete="tel"
           />
           {!editUser && (
             <>
@@ -633,18 +700,18 @@ function AdminPage() {
                 type="date"
                 value={newDate}
                 onChange={(e) => setNewDate(e.target.value)}
-                className="w-full p-3 mb-3 bg-gray-700 rounded text-white text-base"
+                className="w-full p-3 mb-3 bg-gray-700 rounded text-white text-base focus:outline-none focus:ring-2 focus:ring-pink-500"
               />
               <input
                 type="time"
                 value={newTime}
                 onChange={(e) => setNewTime(e.target.value)}
-                className="w-full p-3 mb-3 bg-gray-700 rounded text-white text-base"
+                className="w-full p-3 mb-3 bg-gray-700 rounded text-white text-base focus:outline-none focus:ring-2 focus:ring-pink-500"
               />
               <div className="flex flex-col space-y-2 mb-3">
                 <label className="font-semibold">Modalidade:</label>
                 <div className="flex space-x-4">
-                  <label>
+                  <label className="flex items-center">
                     <input
                       type="radio"
                       value="presencial"
@@ -654,7 +721,7 @@ function AdminPage() {
                     />
                     Presencial
                   </label>
-                  <label>
+                  <label className="flex items-center">
                     <input
                       type="radio"
                       value="online"
@@ -672,7 +739,7 @@ function AdminPage() {
                   placeholder="Link do Google Meet"
                   value={newMeetLink}
                   onChange={(e) => setNewMeetLink(e.target.value)}
-                  className="w-full p-3 mb-3 bg-gray-700 rounded text-white text-base"
+                  className="w-full p-3 mb-3 bg-gray-700 rounded text-white text-base focus:outline-none focus:ring-2 focus:ring-pink-500"
                 />
               ) : (
                 <>
@@ -681,35 +748,38 @@ function AdminPage() {
                     placeholder="Rua"
                     value={newStreet}
                     onChange={(e) => setNewStreet(e.target.value)}
-                    className="w-full p-3 mb-3 bg-gray-700 rounded text-white text-base"
+                    className="w-full p-3 mb-3 bg-gray-700 rounded text-white text-base focus:outline-none focus:ring-2 focus:ring-pink-500"
+                    autoComplete="street-address"
                   />
                   <input
                     type="text"
                     placeholder="Número"
                     value={newNumber}
                     onChange={(e) => setNewNumber(e.target.value)}
-                    className="w-full p-3 mb-3 bg-gray-700 rounded text-white text-base"
+                    className="w-full p-3 mb-3 bg-gray-700 rounded text-white text-base focus:outline-none focus:ring-2 focus:ring-pink-500"
                   />
                   <input
                     type="text"
                     placeholder="Bairro"
                     value={newNeighborhood}
                     onChange={(e) => setNewNeighborhood(e.target.value)}
-                    className="w-full p-3 mb-3 bg-gray-700 rounded text-white text-base"
+                    className="w-full p-3 mb-3 bg-gray-700 rounded text-white text-base focus:outline-none focus:ring-2 focus:ring-pink-500"
                   />
                   <input
                     type="text"
                     placeholder="Cidade"
                     value={newCity}
                     onChange={(e) => setNewCity(e.target.value)}
-                    className="w-full p-3 mb-3 bg-gray-700 rounded text-white text-base"
+                    className="w-full p-3 mb-3 bg-gray-700 rounded text-white text-base focus:outline-none focus:ring-2 focus:ring-pink-500"
+                    autoComplete="address-level2"
                   />
                   <input
                     type="text"
                     placeholder="CEP"
                     value={newCep}
                     onChange={(e) => setNewCep(e.target.value)}
-                    className="w-full p-3 mb-3 bg-gray-700 rounded text-white text-base"
+                    className="w-full p-3 mb-3 bg-gray-700 rounded text-white text-base focus:outline-none focus:ring-2 focus:ring-pink-500"
+                    autoComplete="postal-code"
                   />
                 </>
               )}
@@ -717,7 +787,7 @@ function AdminPage() {
                 placeholder="Observações"
                 value={newObservation}
                 onChange={(e) => setNewObservation(e.target.value)}
-                className="w-full p-3 mb-3 bg-gray-700 rounded text-white text-base"
+                className="w-full p-3 mb-3 bg-gray-700 rounded text-white text-base focus:outline-none focus:ring-2 focus:ring-pink-500"
               />
             </>
           )}
@@ -729,6 +799,7 @@ function AdminPage() {
                   setNewName("");
                   setNewEmail("");
                   setNewWhatsapp("");
+                  setError("");
                 }}
                 className="w-full sm:w-auto flex items-center justify-center bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700 transition-colors duration-200"
               >
@@ -776,25 +847,25 @@ function AdminPage() {
         </div>
 
         {editSchedule && (
-          <div className="bg-gray-800 p-6 rounded-lg mb-6">
+          <div className="bg-gray-800 p-6 rounded-lg mb-6 shadow-lg">
             <h3 className="text-xl font-bold mb-4">Editar Agendamento</h3>
             <div className="grid grid-cols-1 gap-3">
               <input
                 type="date"
                 value={editDate}
                 onChange={(e) => setEditDate(e.target.value)}
-                className="w-full p-3 bg-gray-700 rounded text-white"
+                className="w-full p-3 bg-gray-700 rounded text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
               />
               <input
                 type="time"
                 value={editTime}
                 onChange={(e) => setEditTime(e.target.value)}
-                className="w-full p-3 bg-gray-700 rounded text-white"
+                className="w-full p-3 bg-gray-700 rounded text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
               />
               <div className="flex flex-col space-y-2">
                 <label className="font-semibold">Modalidade:</label>
                 <div className="flex space-x-4">
-                  <label>
+                  <label className="flex items-center">
                     <input
                       type="radio"
                       value="presencial"
@@ -804,7 +875,7 @@ function AdminPage() {
                     />
                     Presencial
                   </label>
-                  <label>
+                  <label className="flex items-center">
                     <input
                       type="radio"
                       value="online"
@@ -822,7 +893,7 @@ function AdminPage() {
                   placeholder="Link do Google Meet"
                   value={editMeetLink}
                   onChange={(e) => setEditMeetLink(e.target.value)}
-                  className="w-full p-3 bg-gray-700 rounded text-white"
+                  className="w-full p-3 bg-gray-700 rounded text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
                 />
               ) : (
                 <>
@@ -831,35 +902,38 @@ function AdminPage() {
                     placeholder="Rua"
                     value={editStreet}
                     onChange={(e) => setEditStreet(e.target.value)}
-                    className="w-full p-3 bg-gray-700 rounded text-white"
+                    className="w-full p-3 bg-gray-700 rounded text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
+                    autoComplete="street-address"
                   />
                   <input
                     type="text"
                     placeholder="Número"
                     value={editNumber}
                     onChange={(e) => setEditNumber(e.target.value)}
-                    className="w-full p-3 bg-gray-700 rounded text-white"
+                    className="w-full p-3 bg-gray-700 rounded text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
                   />
                   <input
                     type="text"
                     placeholder="Bairro"
                     value={editNeighborhood}
                     onChange={(e) => setEditNeighborhood(e.target.value)}
-                    className="w-full p-3 bg-gray-700 rounded text-white"
+                    className="w-full p-3 bg-gray-700 rounded text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
                   />
                   <input
                     type="text"
                     placeholder="Cidade"
                     value={editCity}
                     onChange={(e) => setEditCity(e.target.value)}
-                    className="w-full p-3 bg-gray-700 rounded text-white"
+                    className="w-full p-3 bg-gray-700 rounded text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
+                    autoComplete="address-level2"
                   />
                   <input
                     type="text"
                     placeholder="CEP"
                     value={editCep}
                     onChange={(e) => setEditCep(e.target.value)}
-                    className="w-full p-3 bg-gray-700 rounded text-white"
+                    className="w-full p-3 bg-gray-700 rounded text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
+                    autoComplete="postal-code"
                   />
                 </>
               )}
@@ -867,7 +941,7 @@ function AdminPage() {
                 placeholder="Observações"
                 value={editObservation}
                 onChange={(e) => setEditObservation(e.target.value)}
-                className="w-full p-3 bg-gray-700 rounded text-white"
+                className="w-full p-3 bg-gray-700 rounded text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
               />
             </div>
             <div className="flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-3 mt-4">
@@ -884,6 +958,7 @@ function AdminPage() {
                   setEditNeighborhood("");
                   setEditCity("");
                   setEditCep("");
+                  setError("");
                 }}
                 className="w-full sm:w-auto flex items-center justify-center bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700 transition-colors duration-200"
               >
@@ -930,7 +1005,7 @@ function AdminPage() {
           </div>
         )}
 
-        <div className="bg-gray-800 p-6 rounded-lg">
+        <div className="bg-gray-800 p-6 rounded-lg shadow-lg">
           <h3 className="text-xl font-bold mb-4">
             Lista de Usuários e Agendamentos
           </h3>
@@ -1004,6 +1079,7 @@ function AdminPage() {
                           <button
                             onClick={() => handleEditUser(entry.user)}
                             className="p-2 text-pink-400 hover:text-pink-600 transition-colors duration-200"
+                            title="Editar Usuário"
                           >
                             <svg
                               xmlns="http://www.w3.org/2000/svg"
@@ -1025,6 +1101,7 @@ function AdminPage() {
                               handleDeleteUser(entry.user.whatsapp)
                             }
                             className="p-2 text-red-400 hover:text-red-600 transition-colors duration-200"
+                            title="Deletar Usuário"
                           >
                             <svg
                               xmlns="http://www.w3.org/2000/svg"
@@ -1048,6 +1125,7 @@ function AdminPage() {
                               <button
                                 onClick={() => handleEditSchedule(entry)}
                                 className="p-2 text-blue-400 hover:text-blue-600 transition-colors duration-200"
+                                title="Editar Agendamento"
                               >
                                 <svg
                                   xmlns="http://www.w3.org/2000/svg"
@@ -1073,6 +1151,7 @@ function AdminPage() {
                                   )
                                 }
                                 className="p-2 text-red-400 hover:text-red-600 transition-colors duration-200"
+                                title="Deletar Agendamento"
                               >
                                 <svg
                                   xmlns="http://www.w3.org/2000/svg"
@@ -1122,6 +1201,7 @@ function AdminPage() {
                       <button
                         onClick={() => handleEditUser(entry.user)}
                         className="p-2 text-pink-400 hover:text-pink-600 transition-colors duration-200"
+                        title="Editar Usuário"
                       >
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
@@ -1141,6 +1221,7 @@ function AdminPage() {
                       <button
                         onClick={() => handleDeleteUser(entry.user.whatsapp)}
                         className="p-2 text-red-400 hover:text-red-600 transition-colors duration-200"
+                        title="Deletar Usuário"
                       >
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
@@ -1164,6 +1245,7 @@ function AdminPage() {
                           <button
                             onClick={() => handleEditSchedule(entry)}
                             className="p-2 text-blue-400 hover:text-blue-600 transition-colors duration-200"
+                            title="Editar Agendamento"
                           >
                             <svg
                               xmlns="http://www.w3.org/2000/svg"
@@ -1189,6 +1271,7 @@ function AdminPage() {
                               )
                             }
                             className="p-2 text-red-400 hover:text-red-600 transition-colors duration-200"
+                            title="Deletar Agendamento"
                           >
                             <svg
                               xmlns="http://www.w3.org/2000/svg"
