@@ -123,7 +123,7 @@ function HomePage() {
 
   useEffect(() => {
     logEvent(analytics, "page_view", {
-      page_title: "Montoni Soluções Tech - Home",
+      page_title: "Montoni Tech Soluções  - Home",
     });
   }, []);
 
@@ -313,7 +313,7 @@ function HomePage() {
                   ? `Reunião ONLINE\nLink do Google Meet: Será definido em breve.`
                   : `Reunião PRESENCIAL\nEndereço: ${addressText}`
               }\nObservações: ${observation || "Nenhuma"}`;
-              const companyMessageUrl = `https://wa.me/+552299998352?text=${encodeURIComponent(
+              const companyMessageUrl = `https://wa.me/+5522999998352?text=${encodeURIComponent(
                 companyMessage
               )}`;
               try {
@@ -601,7 +601,7 @@ function HomePage() {
         <section className="flex flex-col items-center justify-center h-screen bg-gradient-to-r from-purple-600 to-pink-600 text-center">
           <div className="px-4">
             <h2 className="text-3xl sm:text-5xl font-bold mb-4">
-              Bem-vindo à Montoni Soluções Tech
+              Bem-vindo à Montoni Tech Soluções 
             </h2>
             <p className="text-lg sm:text-xl mb-4">
               Transformamos ideias em soluções tecnológicas inovadoras.
@@ -633,8 +633,8 @@ function HomePage() {
               <p>Apps nativos, PWAs e webapps sob medida.</p>
             </div>
             <div className="bg-gray-800 p-6 rounded-lg flex flex-col items-center text-center">
-              <h3 className="text-2xl font-semibold mb-4">Sistemas SaaS</h3>
-              <p>Soluções ERP, CRM e SCM personalizadas.</p>
+              <h3 className="text-2xl font-semibold mb-4">Sistemas Empresáriais</h3>
+              <p>Soluções SaaS, ERP, CRM e SCM personalizadas.</p>
             </div>
             <div className="bg-gray-800 p-6 rounded-lg flex flex-col items-center text-center">
               <h3 className="text-2xl font-semibold mb-4">Consultoria em TI</h3>
