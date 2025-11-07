@@ -390,7 +390,7 @@ function HomePage() {
             <div className="flex items-center">
               <img src={LogoMS} alt="Montoni Logo" className="h-10 mr-4" />
               <h1 className="text-xl sm:text-2xl font-bold">
-                Montoni Soluções Tech
+                Montoni Tech Soluções
               </h1>
             </div>
             <div className="hidden md:flex items-center space-x-4">
