@@ -658,7 +658,7 @@ function HomePage() {
             <p className="text-xl mb-4">
               Telefone e WhatsApp:{" "}
               <a
-                href="https://wa.me/552999998352"
+                href="https://wa.me/552299998352"
                 className="text-pink-400 hover:text-pink-600 flex justify-center items-center"
                 target="_blank"
                 rel="noopener noreferrer"
