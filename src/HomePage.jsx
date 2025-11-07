@@ -647,7 +647,7 @@ function HomePage() {
           <div>
             <h2 className="text-4xl font-bold mb-6">Entre em Contato</h2>
             <p className="text-xl mb-4">
-              Email:{" "}
+              {" "}
               <a
                 href="mailto:robertomontoni.dev@gmail.com"
                 className="text-pink-400 hover:text-pink-600"
@@ -680,7 +680,7 @@ function HomePage() {
 </p>
 
 <p className="text-xl mb-4">
-  GitHub:{" "}
+  {" "}
   <a
     href="https://github.com/MontoniSoftwares"
     className="text-pink-400 hover:text-pink-600 inline-flex items-center gap-2"
@@ -704,7 +704,7 @@ function HomePage() {
 </p>
 
             <p className="text-xl mb-4">
-              LinkedIn:{" "}
+              {" "}
               <a
                 href="https://www.linkedin.com/in/robertomontoni/"
                 className="text-pink-400 hover:text-pink-600 flex justify-center items-center"
@@ -727,7 +727,7 @@ function HomePage() {
               </a>
             </p>
             <p className="text-xl mb-4">
-              Instagram:{" "}
+              {" "}
               <a
                 href="https://www.instagram.com/montonisolucoestech/"
                 className="text-pink-400 hover:text-pink-600 flex justify-center items-center"
@@ -750,7 +750,7 @@ function HomePage() {
               </a>
             </p>
             <p className="text-xl mb-4">
-              App:{" "}
+              {" "}
               <a
                 href="https://app-montoni-solucoes-tech.vercel.app/"
                 className="text-pink-400 hover:text-pink-600 flex justify-center items-center"
