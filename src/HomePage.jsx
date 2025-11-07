@@ -281,7 +281,7 @@ function HomePage() {
               const meetingDetails = `Data: ${formattedDate}, Horário: ${meetingTime}`;
 
               // Mensagem para o cliente
-              let clientMessage = `Confirmação de agendamento - Montoni Soluções Tech\n\nNossa Equipe da Montoni Soluções Tech recebeu seu agendamento!\n\n`;
+              let clientMessage = `Confirmação de agendamento - Montoni Tech Soluções\n\nNossa Equipe da Montoni Tech Soluções recebeu seu agendamento!\n\n`;
               if (isOnline) {
                 clientMessage += `Reunião ONLINE\n${meetingDetails}\nLink do Google Meet: Em breve você receberá o link da reunião.\nObservações: ${
                   observation || "Nenhuma"
@@ -308,12 +308,12 @@ function HomePage() {
 
               // Mensagem para a empresa
               const clientName = loggedInUser.name || "Cliente Desconhecido";
-              const companyMessage = `Novo agendamento - Montoni Soluções Tech\n\nCliente: ${clientName} (WhatsApp: ${cleanWhatsapp})\n${meetingDetails}\n${
+              const companyMessage = `Novo agendamento - Montoni Tech Soluções\n\nCliente: ${clientName} (WhatsApp: ${cleanWhatsapp})\n${meetingDetails}\n${
                 isOnline
                   ? `Reunião ONLINE\nLink do Google Meet: Será definido em breve.`
                   : `Reunião PRESENCIAL\nEndereço: ${addressText}`
               }\nObservações: ${observation || "Nenhuma"}`;
-              const companyMessageUrl = `https://wa.me/+552999998352?text=${encodeURIComponent(
+              const companyMessageUrl = `https://wa.me/+552299998352?text=${encodeURIComponent(
                 companyMessage
               )}`;
               try {
