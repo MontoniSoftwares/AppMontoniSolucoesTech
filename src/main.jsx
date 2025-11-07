@@ -16,5 +16,5 @@ ReactDOM.createRoot(document.getElementById("root")).render(
 
 // Rastrear evento de visualização de página inicial
 logEvent(analytics, "page_view", {
-  page_title: "Montoni Soluções Tech - Home",
+  page_title: "Montoni Tech Soluções  - Home",
 });
